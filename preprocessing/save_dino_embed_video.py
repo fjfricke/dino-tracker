@@ -4,7 +4,7 @@ import torch
 import yaml
 from data.data_utils import load_video
 from utils import add_config_paths, get_dino_features_video
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 def save_dino_embed_video(args):
     config_paths = add_config_paths(args.data_path, {})
@@ -18,7 +18,7 @@ def save_dino_embed_video(args):
     h, w = config["video_resh"], config["video_resw"]
     
     video = load_video(video_folder=video_folder, resize=(h, w), num_frames=400).to(device) # T x 3 x H x W
-    dino_embed_video = get_dino_features_video(video=video, model_name=dino_model_name, facet=dino_facet, stride=dino_stride, layer=dino_layer).to(device).detach() # T x C' x H' x W'
+    dino_embed_video = get_dino_features_video(video=video, model_name=dino_model_name, facet=dino_facet, stride=dino_stride, layer=dino_layer, device=device).to(device).detach() # T x C' x H' x W'
 
     os.makedirs(os.path.dirname(dino_embed_video_path), exist_ok=True)
     torch.save(dino_embed_video, dino_embed_video_path)

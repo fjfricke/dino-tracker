@@ -67,8 +67,9 @@ def get_dino_features_video(video, model_name="dinov2_vitb14", facet='tokens', s
         dino_features_video[i] = features.cpu()
     # interpolate to the original video length
     del dino_extractor
-    torch.cuda.empty_cache()
-    gc.collect()
+    if device == "cuda":
+        torch.cuda.empty_cache()
+        gc.collect()
     return dino_features_video
 
 

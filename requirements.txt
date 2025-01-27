@@ -1,7 +1,7 @@
-torch==2.1.0
-torchvision==0.16.0
-xformers==0.0.22.post7
-opencv-python==4.8.1.78
+# torch==2.1.0
+# torchvision==0.16.0
+# xformers==0.0.22.post7
+# opencv-python==4.8.1.78
 antialiased_cnns
 einops
 imageio[ffmpeg]

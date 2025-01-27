@@ -199,6 +199,8 @@ def save_trajectories(args):
     all_filtered_trajectories = torch.full((0, t, 2), device="cpu", fill_value=float("nan"))
     look_behind = True
 
+    # Determine the current device
+    current_device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 
     for starting_frame in tqdm(range(t - (min_trajectory_length - 1)), leave=False):
         trajectories = torch.zeros((t - starting_frame, h, w, 2)).float().to(device) # all trajectories starting from starting_frame, (t) x h x w x 2
@@ -262,7 +264,9 @@ def save_trajectories(args):
         one_nan_least = padded_trajectories.isnan().any(dim=-1)
         set_nans = repeat(one_nan_least, "T t -> T t 2")
         padded_trajectories[set_nans] = float("nan")
-        current_not_nan_traj = padded_trajectories[padded_trajectories.cpu().isnan().any(dim=-1).logical_not().sum(dim=-1).cuda() >= min_trajectory_length]
+        current_not_nan_traj = padded_trajectories[
+            padded_trajectories.to(current_device).isnan().any(dim=-1).logical_not().sum(dim=-1).to("cpu") >= min_trajectory_length
+        ]
         all_filtered_trajectories = torch.cat([all_filtered_trajectories, current_not_nan_traj.cpu()], dim=0) # (N x t x 2), (M x t x 2) -> ((M+N) x t x 2)
 
     torch.save(all_filtered_trajectories, output_path)

@@ -1,11 +1,13 @@
 import os
+os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
+
 import subprocess
 import argparse
 import torch
 import yaml
 from utils import add_config_paths
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 
 if __name__ == "__main__":
