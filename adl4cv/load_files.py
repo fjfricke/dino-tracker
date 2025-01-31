@@ -103,7 +103,7 @@ def reshape_depth_map(depth_maps):
 
     return coords_depth
 
-def compute_pixel_flow(world_points, cameras, image_size, mask, max_world_dist=0.1):
+def compute_pixel_flow(world_points, cameras, image_size, mask, max_world_dist=0.01):
     """
     Computes optical flow in pixel coordinates by matching world points across frames 
     and transforming them back to screen space.
@@ -144,6 +144,8 @@ def compute_pixel_flow(world_points, cameras, image_size, mask, max_world_dist=0
         dists, indices = tree.query(world_t_valid)  # Match points in frame t to t+1
 
         # Step 2: Apply world-space distance threshold
+        valid_matches = dists < max_world_dist  # True if within threshold
+        # Step 2: Apply world-space distance threshold
         # valid_matches = dists < max_world_dist  # True if within threshold
         # valid_indices = indices[valid_matches]  # Indices of valid matches
 
@@ -169,8 +171,8 @@ def compute_pixel_flow(world_points, cameras, image_size, mask, max_world_dist=0
         updated_mask = torch.zeros((H * W,), dtype=torch.float32, device=device)
 
         # Assign computed flow only to valid matches
-        valid_idx_flat = mask_t.nonzero()[0]  # Indices in (H*W) for valid points
-        flow_full[valid_idx_flat] = flow  # Assign flow only to matched valid points
+        valid_idx_flat = mask_t.nonzero()[0][valid_matches]  # Indices in (H*W) for valid points
+        flow_full[valid_idx_flat] = flow[valid_matches]  # Assign flow only to matched valid points
         updated_mask[valid_idx_flat] = 1  # Mark valid matches
 
         # Reshape back to (H, W)
@@ -228,7 +230,7 @@ def compute_optical_flow_with_mask(cameras, depth_maps, threshold=0.1):
 
     # depth_in_ws_masked = depth_in_wc[mask]
 
-    flow, valid_mask = compute_pixel_flow(depth_in_wc[[100,107], :, :, :], cameras_cpu[[100,107]], (H, W), mask[[100,107], :, :])
+    flow, valid_mask = compute_pixel_flow(depth_in_wc[[0,7], :, :, :], cameras_cpu[[0,7]], (H, W), mask[[0,7], :, :])
 
     # visualize_warped_images(depth_maps[12], depth_maps[13], flow[0])
 
