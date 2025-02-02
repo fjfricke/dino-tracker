@@ -15,7 +15,7 @@ from preprocessing.split_trajectories_to_fg_bg import load_masks
 from utils import add_config_paths
 
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+device = "cuda:0" if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
 
 
@@ -26,25 +26,29 @@ class DINOTracker():
         self.set_paths(args.data_path)
 
         self.orig_video_res_h, self.orig_video_res_w, video_rest = self.get_original_video_res(self.video_path)
-        self.range_normalizer = RangeNormalizer(shapes=(self.config["video_resw"], self.config["video_resh"], video_rest)).to(device) # nn.Module
+        self.range_normalizer = RangeNormalizer(shapes=(self.config["video_resw"], self.config["video_resh"], video_rest), device=device).to(device) # nn.Module
         self.of_loss_fn = torch.nn.HuberLoss(delta=1/32, reduction='none')
         
     def load_fg_masks(self):
-        self.fg_masks = torch.from_numpy(load_masks(self.fg_masks_path, h_resize=self.config["video_resh"])).to(device)        
+        if self.config["use_fg_masks"]:
+            self.fg_masks = torch.from_numpy(load_masks(self.fg_masks_path, h_resize=self.config["video_resh"])).to(device)        
+        else:
+            self.fg_masks = torch.ones(self.config["video_resh"], self.config["video_resw"]).to(device)
     
     def set_paths(self, data_path):
         config_paths = add_config_paths(data_path, {})
         self.video_path = config_paths["video_folder"]
-        self.fg_masks_path = config_paths["masks_path"]
+        # self.fg_masks_path = config_paths["masks_path"]
         self.dino_embed_path = config_paths["dino_embed_video_path"]
-        self.fg_trajectories_path = config_paths["fg_trajectories_file"]
-        self.bg_trajectories_path = config_paths["bg_trajectories_file"]
-        self.dino_bb_path = os.path.join(config_paths["dino_bb_dir"], "dino_best_buddies_filtered.pt")
+        # self.fg_trajectories_path = config_paths["fg_trajectories_file"]
+        # self.bg_trajectories_path = config_paths["bg_trajectories_file"]
+        self.trajectories_path = config_paths["trajectories_file"]
+        # self.dino_bb_path = os.path.join(config_paths["dino_bb_dir"], "dino_best_buddies_filtered.pt")
         self.ckpt_folder = config_paths["ckpt_folder"]
-        self.trajectories_dir = config_paths['trajectories_dir']
-        self.occlusions_dir = config_paths['occlusions_dir']
-        self.grid_trajectories_dir = config_paths['grid_trajectories_dir']
-        self.grid_occlusions_dir = config_paths['grid_occlusions_dir']
+        # self.trajectories_dir = config_paths['trajectories_dir']
+        # self.occlusions_dir = config_paths['occlusions_dir']
+        # self.grid_trajectories_dir = config_paths['grid_trajectories_dir']
+        # self.grid_occlusions_dir = config_paths['grid_occlusions_dir']
         os.makedirs(self.ckpt_folder, exist_ok=True)
         
     def load_config(self, config_path):
@@ -61,11 +65,11 @@ class DINOTracker():
         return video_res_hw + (video_rest,)
 
     def load_trajectories(self):
-        assert os.path.exists(self.fg_trajectories_path) & os.path.exists(self.bg_trajectories_path), "trajectory files don't exist"
+        assert os.path.exists(self.trajectories_path), "trajectory files don't exist"
         
         trj_device = torch.device('cpu') if self.config['keep_traj_in_cpu'] else device
-        train_fg_trajectories = torch.load(self.fg_trajectories_path, map_location=trj_device)
-        train_bg_trajectories = torch.load(self.bg_trajectories_path, map_location=trj_device)
+        train_fg_trajectories = torch.load(self.trajectories_path, map_location=trj_device)
+        train_bg_trajectories = torch.empty_like(train_fg_trajectories)
         return train_fg_trajectories, train_bg_trajectories
     
     def get_sampler(self):        
@@ -163,7 +167,7 @@ class DINOTracker():
         self.init_losses()
 
     def train(self):
-        self.load_fg_masks()
+        # self.load_fg_masks()
         # Get values from config
         total_iterations = self.config["total_iterations"]
         checkpoint_interval = self.config["checkpoint_interval"]

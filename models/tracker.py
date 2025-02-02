@@ -59,7 +59,7 @@ class Tracker(nn.Module):
                                         step_w=stride,
                                         video_h=h,
                                         video_w=w).to(device)
-        self.range_normalizer = RangeNormalizer(shapes=(w, h, self.video.shape[0]))
+        self.range_normalizer = RangeNormalizer(shapes=(w, h, self.video.shape[0]), device=device)
     
     @torch.no_grad()
     def load_dino_embed_video(self):
@@ -147,11 +147,11 @@ class Tracker(nn.Module):
         
     def load_weights(self, iter):
         self.tracker_head = load_pre_trained_model(
-            torch.load(os.path.join(self.ckpt_path, f"tracker_head_{iter}.pt")),
+            torch.load(os.path.join(self.ckpt_path, f"tracker_head_{iter}.pt"), map_location=self.device),
             self.tracker_head
         )
         self.delta_dino = load_pre_trained_model(
-            torch.load(os.path.join(self.ckpt_path, f"delta_dino_{iter}.pt")),
+            torch.load(os.path.join(self.ckpt_path, f"delta_dino_{iter}.pt"), map_location=self.device),
             self.delta_dino
         )
     

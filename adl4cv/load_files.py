@@ -5,7 +5,8 @@ from pytorch3d.renderer import PerspectiveCameras
 
 from scipy.spatial import cKDTree
 
-from .plot_flow import visualize_optical_flow_video
+from plot_flow import visualize_optical_flow_video
+from build_trajectories_from_flow import build_and_pad_trajectories
 
 
 def screen_to_ndc_depth(depth_map, image_size):
@@ -105,7 +106,7 @@ def compute_pixel_flow(world_points, cameras, image_size, mask, max_world_dist=0
 
         # Step 2: Apply world-space distance threshold
         valid_matches = dists < max_world_dist  # True if within threshold
-        
+
         # Select valid world points
         # world_t_valid = world_t[valid_indices]  # (V, 3)
         world_tp1_valid = world_tp1_valid[indices]  # (V, 3)
@@ -125,7 +126,7 @@ def compute_pixel_flow(world_points, cameras, image_size, mask, max_world_dist=0
 
         # Create output tensors (default to zero flow)
         flow_full = torch.zeros((H * W, 2), dtype=torch.float32, device=device)
-        updated_mask = torch.zeros((H * W,), dtype=torch.float32, device=device)
+        updated_mask = torch.zeros((H * W,), dtype=torch.bool, device=device)
 
         # Assign computed flow only to valid matches
         valid_idx_flat = mask_t.nonzero()[0][valid_matches]  # Indices in (H*W) for valid points
@@ -184,12 +185,21 @@ def load_renderings(path):
     with open(path, "rb") as f:
         return torch.load(f, map_location=torch.device("cpu"))
     
+def save_trajectories(trajectories, path):
+    with open(path, "wb") as f:
+        torch.save(trajectories, f)
+    
 def save_video(renderings, path):
     video_gen = MeshVideoGenerator(device="cpu")
     video_gen.save_video(renderings["normal_batched_renderings"], path, fps=30, display_frames=True)
 
 if __name__ == "__main__":
-    files = load_renderings("./datasets/pickled_renderings/render_data_cow.pt")
+    # files = load_renderings("./datasets/pickled_renderings/render_data_cow.pt")
+    files = load_renderings("./datasets/rendered_mesh_output/rendered_mesh_output_cow.pt")
+    # mask to boolean
     flow, mask = compute_optical_flow_with_mask(files["camera"], files["depth"])
-    visualize_optical_flow_video(flow, mask)
+    # visualize_optical_flow_video(flow, mask, output_path="./datasets/rendered_mesh_output/rendered_mesh_output_cow.mp4")
+    trajectories = build_and_pad_trajectories(flow, mask)
+    save_trajectories(trajectories, "./datasets/rendered_mesh_output/trajectories_cow.pt")
+
     print(files)
