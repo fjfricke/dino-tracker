@@ -8,7 +8,7 @@ from models.networks.tracker_head import TrackerHead
 from models.networks.delta_dino import DeltaDINO
 from models.utils import load_pre_trained_model
 from data.dataset import RangeNormalizer
-from utils import bilinear_interpolate_video
+from utils import bilinear_interpolate_video, get_dino_features_video
 
 
 EPS = 1e-08
@@ -67,8 +67,9 @@ class Tracker(nn.Module):
         video: T x 3 x H' x W'
         self.dino_embed_video: T x C x H x W
         """
-        assert os.path.exists(self.dino_embed_path)
-        self.dino_embed_video = torch.load(self.dino_embed_path, map_location=self.device)
+        self.dino_embed_video = get_dino_features_video(self.video, device=self.device)
+        # assert os.path.exists(self.dino_embed_path)
+        # self.dino_embed_video = torch.load(self.dino_embed_path, map_location=self.device)
   
     def get_dino_embed_video(self, frames_set_t):
         dino_emb = self.dino_embed_video[frames_set_t.to(self.dino_embed_video.device)] if frames_set_t.device != self.dino_embed_video.device else self.dino_embed_video[frames_set_t]

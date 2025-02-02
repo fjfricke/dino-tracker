@@ -3,10 +3,10 @@ checkpoint_interval: 2500
 
 
 ########################## data loader ##########################
-# video_resw: 854
-# video_resh: 476
-video_resw: 512
-video_resh: 512
+video_resw: 854
+video_resh: 476
+# video_resw: 512
+# video_resh: 512
 
 
 fg_traj_ratio: 1.0

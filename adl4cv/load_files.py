@@ -189,17 +189,18 @@ def save_trajectories(trajectories, path):
     with open(path, "wb") as f:
         torch.save(trajectories, f)
     
-def save_video(renderings, path):
+def save_video(renderings, path, filename):
     video_gen = MeshVideoGenerator(device="cpu")
-    video_gen.save_video(renderings["normal_batched_renderings"], path, fps=30, display_frames=True)
+    video_gen.save_video(renderings, path, filename, fps=30, display_frames=False)
 
 if __name__ == "__main__":
     # files = load_renderings("./datasets/pickled_renderings/render_data_cow.pt")
     files = load_renderings("./datasets/rendered_mesh_output/rendered_mesh_output_cow.pt")
     # mask to boolean
     flow, mask = compute_optical_flow_with_mask(files["camera"], files["depth"])
+    save_video(files["renderings"], "./datasets/rendered_mesh_output/video", "video.mp4")
     # visualize_optical_flow_video(flow, mask, output_path="./datasets/rendered_mesh_output/rendered_mesh_output_cow.mp4")
-    trajectories = build_and_pad_trajectories(flow, mask)
-    save_trajectories(trajectories, "./datasets/rendered_mesh_output/trajectories_cow.pt")
+    trajectories = build_and_pad_trajectories(flow[:50], mask[:50])
+    save_trajectories(trajectories, "./datasets/rendered_mesh_output/of_trajectories/trajectories_cow.pt")
 
     print(files)
