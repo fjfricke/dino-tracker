@@ -1,13 +1,18 @@
+import os
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+
+
 import argparse
 from dino_tracker import DINOTracker
 from models.utils import fix_random_seeds
+from pathlib import Path
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--config", default="./config/train.yaml", type=str)
-    parser.add_argument("--data-path", default="./dataset/dino-tracker-output", type=str)
+    parser.add_argument("--config", default=Path(__file__).parent / "train.yaml", type=str)
+    parser.add_argument("--data-path", default=Path(__file__).parent.parent.parent / "datasets/rendered_mesh_output", type=str)
     parser.add_argument("--seed", default=2, type=int)
     args = parser.parse_args()
 

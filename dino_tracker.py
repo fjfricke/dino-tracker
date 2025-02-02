@@ -425,8 +425,8 @@ class DINOTracker():
             
             loss += self.config["lambda_cl_dino_bb"] * loss_cl_dino_bb + self.config["lambda_emb_norm"] * loss_emb_norm_reg + self.config["lambda_angle"] * loss_angle_reg
             loss.backward()
-            optimizer.step()
             scheduler.step()
+            optimizer.step()
             
             # logging losses
             self.update_losses(loss.item(), tracking_loss.item(), loss_cl_dino_bb.item(),
