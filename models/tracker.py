@@ -128,6 +128,24 @@ class Tracker(nn.Module):
             return refined_embeddings, residual_embeddings, frames_dino_embeddings
         return refined_embeddings, residual_embeddings
     
+    def get_refined_embeddings_cpu(self):
+        frames_dino_embeddings = self.get_dino_embed_video(frames_set_t=torch.arange(0, self.video.shape[0]))
+        frames_dino_embeddings = frames_dino_embeddings
+        refiner_input_frames = self.video[torch.arange(0, self.video.shape[0])]
+
+        # compute residual_embeddings in batches of size 8
+        batch_size = 8
+        n_frames = self.video.shape[0]
+        residual_embeddings = torch.zeros_like(frames_dino_embeddings).to('cpu')
+        for i in range(0, n_frames, batch_size):
+            end_idx = min(i+batch_size, n_frames)
+            residual_embeddings_temp = self.delta_dino(refiner_input_frames[i:end_idx], frames_dino_embeddings[i:end_idx])
+            residual_embeddings[i:end_idx] = residual_embeddings_temp.to('cpu')
+        
+        refined_embeddings = frames_dino_embeddings.to('cpu') + residual_embeddings
+        return refined_embeddings, residual_embeddings
+
+    
     def cache_refined_embeddings(self, move_dino_to_cpu=False):
         refined_features, _ = self.get_refined_embeddings(torch.arange(0, self.video.shape[0]))
         self.refined_features = refined_features

@@ -210,6 +210,8 @@ def save_mask(masks, path, resize=False, h=476, w=854):
     for i, mask in enumerate(masks):
         if resize:
             mask = cv2.resize(mask.cpu().numpy(), (w, h))
+        else:
+            mask = mask.cpu().numpy()
         mask = (mask * 255).astype(np.uint8)
         cv2.imwrite(os.path.join(path, f"{i:05d}.png"), mask)
 
@@ -218,6 +220,8 @@ def save_video(renderings, path, resize=False, h=476, w=854):
     for i, rendering in enumerate(renderings):
         if resize:
             rendering = cv2.resize(rendering.cpu().numpy(), (w, h))
+        else:
+            rendering = rendering.cpu().numpy()
         # Ensure rendering is in the correct format without alpha channel
         if rendering.shape[-1] == 4:  # Check if there's an alpha channel
             rendering = rendering[..., :3]  # Remove the alpha channel
@@ -229,7 +233,7 @@ if __name__ == "__main__":
     # files = load_renderings("./datasets/pickled_renderings/render_data_cow.pt")
     files = load_renderings("dataset/rendered_mesh_output/rendered_mesh_output_cow.pt")
 
-    save_video(files["renderings"], "dataset/rendered_mesh_output/video", resize=True, h=476, w=854)
+    save_video(files["renderings"], "dataset/rendered_mesh_output/video", resize=False, h=476, w=854)
     # mask to boolean
     flows, masks = compute_optical_flow_with_mask(files["camera"], files["depth"])
     # save_video(files["renderings"], "./datasets/rendered_mesh_output/video", "video.mp4")
@@ -246,5 +250,5 @@ if __name__ == "__main__":
     # trajectories = create_trajectories_for_all_frames(flows_resised, masks_resized)
     trajectories = build_and_pad_trajectories(flows_resized, masks_resized)
     save_with_torch(trajectories, "dataset/rendered_mesh_output/of_trajectories/fg_trajectories.pt")
-    save_mask(masks_resized, "dataset/rendered_mesh_output/masks", resize=True, h=476, w=854)
+    save_mask(masks_resized, "dataset/rendered_mesh_output/masks", resize=False, h=476, w=854)
 
