@@ -6,7 +6,7 @@ checkpoint_interval: 2500
 video_resw: 854
 video_resh: 476
 
-fg_traj_ratio: 0.5
+fg_traj_ratio: 1.0
 keep_traj_in_cpu: false # set to true for long videos (> 150 frames)
 train_batch_size: 512
 batch_n_frames: 4
@@ -15,8 +15,8 @@ batch_n_frames: 4
 
 ########################## optimization ##########################
 total_iterations: 10000
-lr_delta_dino: 0.01
-lr_cnn_refiner: 0.01
+lr_delta_dino: 0.05
+lr_cnn_refiner: 0.05
 
 
 # Schedulers

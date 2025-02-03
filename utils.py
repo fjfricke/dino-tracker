@@ -26,6 +26,8 @@ def add_config_paths(data_path, config):
     config['grid_trajectories_dir'] = os.path.join(data_path, "grid_trajectories")
     config['grid_occlusions_dir'] = os.path.join(data_path, "grid_occlusions")
     config['model_vis_dir'] = os.path.join(data_path, "visualizations")
+    config['flows_path'] = os.path.join(data_path, "flows.pt")
+    config['valid_mask_path'] = os.path.join(data_path, "masks.pt")
     return config
 
 

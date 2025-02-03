@@ -1,12 +1,16 @@
+import os
+import cv2
+import numpy as np
 import torch
 
-from mesh_video_generator import MeshVideoGenerator
+# from mesh_video_generator import MeshVideoGenerator
 from pytorch3d.renderer import PerspectiveCameras
 
 from scipy.spatial import cKDTree
 
-from plot_flow import visualize_optical_flow_video
 from build_trajectories_from_flow import build_and_pad_trajectories
+from create_trajectories_and_resize import create_trajectories_for_all_frames, resize_flows
+from plot_flow import visualize_optical_flow_quiver
 
 
 def screen_to_ndc_depth(depth_map, image_size):
@@ -137,8 +141,16 @@ def compute_pixel_flow(world_points, cameras, image_size, mask, max_world_dist=0
         flow_list.append(flow_full.view(H, W, 2))  # (H, W, 2)
         mask_list.append(updated_mask.view(H, W))  # (H, W)
 
+    device = cameras[0].device
+    last_mask = mask[-1].to(device).bool()
+
+    flow_stack = torch.stack(flow_list, dim=0)  # => (N-1, H, W, 2)
+    mask_stack = torch.stack(mask_list, dim=0)  # => (N-1, H, W)
+    
+    # Append the final frame's mask
+    mask_stack = torch.cat([mask_stack, last_mask.unsqueeze(0)], dim=0)
     # Stack across frames to get final shape (F-1, H, W, 2)
-    return torch.stack(flow_list), torch.stack(mask_list)
+    return flow_stack, mask_stack
 
 
 def compute_optical_flow_with_mask(cameras, depth_maps, threshold=0.1):
@@ -185,22 +197,54 @@ def load_renderings(path):
     with open(path, "rb") as f:
         return torch.load(f, map_location=torch.device("cpu"))
     
-def save_trajectories(trajectories, path):
+def save_with_torch(trajectories, path):
     with open(path, "wb") as f:
         torch.save(trajectories, f)
     
-def save_video(renderings, path, filename):
-    video_gen = MeshVideoGenerator(device="cpu")
-    video_gen.save_video(renderings, path, filename, fps=30, display_frames=False)
+# def save_video(renderings, path, filename):
+#     video_gen = MeshVideoGenerator(device="cpu")
+#     video_gen.save_video(renderings, path, filename, fps=30, display_frames=False)
+
+def save_mask(masks, path, resize=False, h=476, w=854):
+    os.makedirs(path, exist_ok=True)
+    for i, mask in enumerate(masks):
+        if resize:
+            mask = cv2.resize(mask.cpu().numpy(), (w, h))
+        mask = (mask * 255).astype(np.uint8)
+        cv2.imwrite(os.path.join(path, f"{i:05d}.png"), mask)
+
+def save_video(renderings, path, resize=False, h=476, w=854):
+    os.makedirs(path, exist_ok=True)
+    for i, rendering in enumerate(renderings):
+        if resize:
+            rendering = cv2.resize(rendering.cpu().numpy(), (w, h))
+        # Ensure rendering is in the correct format without alpha channel
+        if rendering.shape[-1] == 4:  # Check if there's an alpha channel
+            rendering = rendering[..., :3]  # Remove the alpha channel
+        # Scale the rendering values from [0, 1] to [0, 255]
+        rendering = (rendering * 255).astype(np.uint8)  # Convert to uint8
+        cv2.imwrite(os.path.join(path, f"{i:05d}.png"), rendering)
 
 if __name__ == "__main__":
     # files = load_renderings("./datasets/pickled_renderings/render_data_cow.pt")
-    files = load_renderings("./datasets/rendered_mesh_output/rendered_mesh_output_cow.pt")
-    # mask to boolean
-    flow, mask = compute_optical_flow_with_mask(files["camera"], files["depth"])
-    save_video(files["renderings"], "./datasets/rendered_mesh_output/video", "video.mp4")
-    # visualize_optical_flow_video(flow, mask, output_path="./datasets/rendered_mesh_output/rendered_mesh_output_cow.mp4")
-    trajectories = build_and_pad_trajectories(flow[:50], mask[:50])
-    save_trajectories(trajectories, "./datasets/rendered_mesh_output/of_trajectories/trajectories_cow.pt")
+    files = load_renderings("dataset/rendered_mesh_output/rendered_mesh_output_cow.pt")
 
-    print(files)
+    save_video(files["renderings"], "dataset/rendered_mesh_output/video", resize=True, h=476, w=854)
+    # mask to boolean
+    flows, masks = compute_optical_flow_with_mask(files["camera"], files["depth"])
+    # save_video(files["renderings"], "./datasets/rendered_mesh_output/video", "video.mp4")
+    # visualize_optical_flow_video(flow, mask, output_path="./datasets/rendered_mesh_output/rendered_mesh_output_cow.mp4")
+    # trajectories = build_and_pad_trajectories(flows[:50], masks[:50])
+    # save_trajectories(trajectories, "dataset/rendered_mesh_output/of_trajectories/fg_trajectories.pt")
+    # save_mask(masks, "dataset/rendered_mesh_output/masks")
+
+    visualize_optical_flow_quiver(flows[0], masks[0])
+    flows_resized, masks_resized = resize_flows(flows[:50], masks[:51], h=476, w=854)
+    # save_with_torch(flows_resised, "dataset/rendered_mesh_output/flows.pt")
+    # save_with_torch(masks_resized, "dataset/rendered_mesh_output/masks.pt")
+    # visualize_optical_flow_quiver(flows_resised[0], masks_resized[0])
+    # trajectories = create_trajectories_for_all_frames(flows_resised, masks_resized)
+    trajectories = build_and_pad_trajectories(flows_resized, masks_resized)
+    save_with_torch(trajectories, "dataset/rendered_mesh_output/of_trajectories/fg_trajectories.pt")
+    save_mask(masks_resized, "dataset/rendered_mesh_output/masks", resize=True, h=476, w=854)
+

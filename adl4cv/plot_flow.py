@@ -3,47 +3,47 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 
-import plotly.graph_objects as go
+# import plotly.graph_objects as go
 
-def plot_3d_points_interactive(points, title="3D Point Cloud"):
-    """
-    Plots a list of 3D points using Plotly for an interactive visualization.
+# def plot_3d_points_interactive(points, title="3D Point Cloud"):
+#     """
+#     Plots a list of 3D points using Plotly for an interactive visualization.
 
-    Args:
-        points (numpy.ndarray or torch.Tensor): Shape (N, 3), where each row is (x, y, z).
-        title (str): Title of the plot.
-    """
-    if isinstance(points, torch.Tensor):
-        points = points.cpu().numpy()
+#     Args:
+#         points (numpy.ndarray or torch.Tensor): Shape (N, 3), where each row is (x, y, z).
+#         title (str): Title of the plot.
+#     """
+#     if isinstance(points, torch.Tensor):
+#         points = points.cpu().numpy()
 
-    fig = go.Figure(data=[go.Scatter3d(
-        x=points[:, 0], 
-        y=points[:, 1], 
-        z=points[:, 2], 
-        mode='markers',
-        marker=dict(size=5, color=points[:, 2], colorscale='Viridis', opacity=0.8)
-    )])
+#     fig = go.Figure(data=[go.Scatter3d(
+#         x=points[:, 0], 
+#         y=points[:, 1], 
+#         z=points[:, 2], 
+#         mode='markers',
+#         marker=dict(size=5, color=points[:, 2], colorscale='Viridis', opacity=0.8)
+#     )])
 
-    # Set the axis ranges to [-1, 1]
-    fig.update_layout(
-        title=title,
-        margin=dict(l=0, r=0, b=0, t=40),
-        scene=dict(
-            xaxis=dict(range=[-1, 1]),
-            yaxis=dict(range=[-1, 1]),
-            zaxis=dict(range=[-1, 1]),
-            aspectmode='cube',
-            camera=dict(
-                eye=dict(x=1.5, y=1.5, z=1.5),
-                up=dict(x=0, y=1, z=0)
-            )
-        )
-    )
+#     # Set the axis ranges to [-1, 1]
+#     fig.update_layout(
+#         title=title,
+#         margin=dict(l=0, r=0, b=0, t=40),
+#         scene=dict(
+#             xaxis=dict(range=[-1, 1]),
+#             yaxis=dict(range=[-1, 1]),
+#             zaxis=dict(range=[-1, 1]),
+#             aspectmode='cube',
+#             camera=dict(
+#                 eye=dict(x=1.5, y=1.5, z=1.5),
+#                 up=dict(x=0, y=1, z=0)
+#             )
+#         )
+#     )
 
-    # fig.update_layout(title=title, margin=dict(l=0, r=0, b=0, t=40))
-    fig.show()
+#     # fig.update_layout(title=title, margin=dict(l=0, r=0, b=0, t=40))
+#     fig.show()
 
-def visualize_optical_flow_quiver(flow, mask=None, step=10):
+def visualize_optical_flow_quiver(flow, mask=None, step=10, save_path=None):
     """
     Plots optical flow as arrows on a grid.
     
@@ -73,7 +73,10 @@ def visualize_optical_flow_quiver(flow, mask=None, step=10):
 
     plt.axis("off")
     plt.title("Optical Flow Quiver Plot")
-    plt.show()
+    if save_path is not None:
+        plt.savefig(save_path)
+    plt.close()
+    pass
 
 def warp_image(image, flow):
     """

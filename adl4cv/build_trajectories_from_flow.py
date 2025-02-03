@@ -1,6 +1,5 @@
 import torch
-
-import torch
+from tqdm import tqdm  # Add this import at the top of your file
 
 def filter_short_trajectories(trajectories, min_valid_frames=2):
     """
@@ -60,7 +59,7 @@ def build_and_pad_trajectories(flow, valid_mask):
 
     sub_trajectories = []  # we will store a padded (H*W, T, 2) for each k
 
-    for k in range(T - 1):
+    for k in tqdm(range(T - 1), desc="Building trajectories"):
         # We'll track from frame k up to frame T-1
         sub_flow = flow[k:]        # shape: ((T-1)-k, H, W, 2)
         sub_valid = valid_mask[k:] # shape: ((T-1)-k, H, W)
@@ -88,7 +87,13 @@ def build_and_pad_trajectories(flow, valid_mask):
                 (y_int >= 0) & (y_int < H)
             ) & not_nan
 
-            mask_ok = torch.zeros_like(inside)
+            # Make sure sub_valid is bool:
+            sub_valid = sub_valid > 0.5  # or sub_valid = sub_valid.bool()
+
+            # Then create a bool mask_ok:
+            mask_ok = torch.zeros(inside.shape, dtype=torch.bool, device=inside.device)
+
+            # Now you can safely assign bool → bool:
             mask_ok[inside] = sub_valid[i, y_int[inside], x_int[inside]]
 
             dxdy = torch.zeros_like(curr_coords)
