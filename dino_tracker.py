@@ -33,7 +33,7 @@ class DINOTracker():
         # self.valid_mask = torch.load(self.valid_mask_path, map_location=device)
         
     def load_fg_masks(self):
-        self.fg_masks = torch.from_numpy(load_masks(self.fg_masks_path, h_resize=self.config["video_resh"])).to(device)        
+        self.fg_masks = torch.from_numpy(load_masks(self.fg_masks_path, h_resize=self.config["video_resh"], w_resize=self.config["video_resw"])).to(device)        
     
     def set_paths(self, data_path):
         config_paths = add_config_paths(data_path, {})

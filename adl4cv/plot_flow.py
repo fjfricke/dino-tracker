@@ -224,7 +224,7 @@ def visualize_optical_flow_video(flow, mask=None, step=10, output_path="optical_
         fig.canvas.draw()
         width, height = fig.canvas.get_width_height()
         frame = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        frame = frame.reshape((height*2, width*2, 3))  # Ensure correct shape
+        frame = frame.reshape(height, width, 3)  # Ensure correct shape
 
         frame = cv2.resize(frame, (W, H))  
         out.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))  

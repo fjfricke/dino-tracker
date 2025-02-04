@@ -1,5 +1,5 @@
 ########################## checkpointing ##########################
-checkpoint_interval: 2500
+checkpoint_interval: 1250
 
 
 ########################## data loader ##########################
@@ -14,7 +14,7 @@ batch_n_frames: 4
 
 
 ########################## optimization ##########################
-total_iterations: 10000
+total_iterations: 5000
 lr_delta_dino: 0.05
 lr_cnn_refiner: 0.05
 

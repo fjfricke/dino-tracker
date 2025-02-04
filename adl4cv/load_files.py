@@ -1,3 +1,4 @@
+import argparse
 import os
 import cv2
 import numpy as np
@@ -10,7 +11,7 @@ from scipy.spatial import cKDTree
 
 from build_trajectories_from_flow import build_and_pad_trajectories
 from create_trajectories_and_resize import create_trajectories_for_all_frames, resize_flows
-from plot_flow import visualize_optical_flow_quiver
+from plot_flow import visualize_optical_flow_quiver, visualize_optical_flow_video
 
 
 def screen_to_ndc_depth(depth_map, image_size):
@@ -198,6 +199,7 @@ def load_renderings(path):
         return torch.load(f, map_location=torch.device("cpu"))
     
 def save_with_torch(trajectories, path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "wb") as f:
         torch.save(trajectories, f)
     
@@ -227,28 +229,30 @@ def save_video(renderings, path, resize=False, h=476, w=854):
             rendering = rendering[..., :3]  # Remove the alpha channel
         # Scale the rendering values from [0, 1] to [0, 255]
         rendering = (rendering * 255).astype(np.uint8)  # Convert to uint8
+        rendering = cv2.cvtColor(rendering, cv2.COLOR_RGB2BGR)
         cv2.imwrite(os.path.join(path, f"{i:05d}.png"), rendering)
 
-if __name__ == "__main__":
-    # files = load_renderings("./datasets/pickled_renderings/render_data_cow.pt")
-    files = load_renderings("dataset/rendered_mesh_output/rendered_mesh_output_cow.pt")
+def main(data_path, input_path, dino_h, dino_w):
+    files = load_renderings(input_path)
 
-    save_video(files["renderings"], "dataset/rendered_mesh_output/video", resize=False, h=476, w=854)
-    # mask to boolean
+    save_video(files["renderings"], os.path.join(data_path, "video"), resize=True)
+
     flows, masks = compute_optical_flow_with_mask(files["camera"], files["depth"])
-    # save_video(files["renderings"], "./datasets/rendered_mesh_output/video", "video.mp4")
-    # visualize_optical_flow_video(flow, mask, output_path="./datasets/rendered_mesh_output/rendered_mesh_output_cow.mp4")
-    # trajectories = build_and_pad_trajectories(flows[:50], masks[:50])
-    # save_trajectories(trajectories, "dataset/rendered_mesh_output/of_trajectories/fg_trajectories.pt")
-    # save_mask(masks, "dataset/rendered_mesh_output/masks")
 
-    visualize_optical_flow_quiver(flows[0], masks[0])
-    flows_resized, masks_resized = resize_flows(flows[:50], masks[:51], h=476, w=854)
-    # save_with_torch(flows_resised, "dataset/rendered_mesh_output/flows.pt")
-    # save_with_torch(masks_resized, "dataset/rendered_mesh_output/masks.pt")
-    # visualize_optical_flow_quiver(flows_resised[0], masks_resized[0])
-    # trajectories = create_trajectories_for_all_frames(flows_resised, masks_resized)
+    visualize_optical_flow_video(flows, masks, output_path=os.path.join(data_path, "flow_video.mp4"))
+    flows_resized, masks_resized = resize_flows(flows, masks, h=dino_h, w=dino_w)
     trajectories = build_and_pad_trajectories(flows_resized, masks_resized)
-    save_with_torch(trajectories, "dataset/rendered_mesh_output/of_trajectories/fg_trajectories.pt")
-    save_mask(masks_resized, "dataset/rendered_mesh_output/masks", resize=False, h=476, w=854)
+    save_with_torch(trajectories, os.path.join(data_path, "of_trajectories/fg_trajectories.pt"))
+    save_mask(masks_resized, os.path.join(data_path, "masks"), resize=True)
 
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-path", default="dataset/rendered_mesh_output", type=str)
+    parser.add_argument("--input-path", default="dataset/rendered_mesh_output/rendered_mesh_output_cow.pt", type=str)
+    parser.add_argument("--dino-h", default=476, type=int)
+    parser.add_argument("--dino-w", default=854, type=int)
+
+    args = parser.parse_args()
+
+    # Call the refactored main function
+    main(args.data_path, args.input_path, args.dino_h, args.dino_w)

@@ -58,22 +58,49 @@ def display_pca_features(features, idx, path):
     # Save visualization
     Image.fromarray(feature_img).save(path)
 
+def get_refined_embeddings(config, data_path, seed=2):
+    """
+    Generate and save refined embeddings for a given dataset.
+
+    Args:
+        config (str): Path to the configuration file.
+        data_path (str): Path to the dataset.
+        seed (int): Random seed for reproducibility.
+        h (int): Target height for reshaped embeddings.
+        w (int): Target width for reshaped embeddings.
+    """
+    logging.basicConfig(level=logging.INFO)
+
+    # Initialize the DINO tracker
+    class Args:
+        def __init__(self, config, data_path, seed):
+            self.config = config
+            self.data_path = data_path
+            self.seed = seed
+
+    args = Args(config=config, data_path=data_path, seed=seed)
+    dino_tracker = DINOTracker(args)
+    tracker = dino_tracker.get_model()
+
+    # Get refined embeddings
+    embeddings, _ = tracker.get_refined_embeddings_cpu()
+    # embeddings = reshape_embeddings(embeddings, 512, 512)
+
+    # Save the embeddings
+    refined_embeddings_path = Path(tracker.dino_embed_path).parent / "refined_embeddings.pt"
+    torch.save(embeddings, refined_embeddings_path)
+    print(f"Saved refined embeddings to {refined_embeddings_path}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
     parser.add_argument("--config", default="./config/train.yaml", type=str)
     parser.add_argument("--data-path", default="./dataset/rendered_mesh_output", type=str)
     parser.add_argument("--seed", default=2, type=int)
-    parser.add_argument("--h", default=512, type=int)
-    parser.add_argument("--w", default=512, type=int)
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO) 
-    dino_tracker = DINOTracker(args)
-    tracker = dino_tracker.get_model()
-    embeddings, _ = tracker.get_refined_embeddings_cpu()
-    # embeddings = reshape_embeddings(embeddings, args.h, args.w)
-
-    # display_pca_features(embeddings, 13, 'sam_features_viz.png')
-
-    torch.save(embeddings, Path(tracker.dino_embed_path).parent / 'refined_embeddings.pt')
+    get_refined_embeddings(
+        config=args.config,
+        data_path=args.data_path,
+        seed=args.seed
+    )
