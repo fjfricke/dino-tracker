@@ -99,7 +99,7 @@ def generate_refined_embeddings():
 
 
 if __name__ == "__main__":
-    # load_files()  # step 1: calculates flow and mask videos for each object
-    # save_dino_embeddings()  # step 2: saves DINO embeddings for each object
-    # train()  # step 3: trains the model
+    load_files()  # step 1: calculates flow and mask videos for each object
+    save_dino_embeddings()  # step 2: saves DINO embeddings for each object
+    train()  # step 3: trains the model
     generate_refined_embeddings()  # step 4: generates refined embeddings
